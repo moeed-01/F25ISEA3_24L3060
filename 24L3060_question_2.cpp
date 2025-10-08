@@ -1,4 +1,4 @@
-﻿#include <iostream>
+#include<iostream>
 #include <fstream>
 #include <vector>
 #include <string>
@@ -119,4 +119,5 @@ int main() {
     cout << endl << "Thanks for playing!" << endl;
     return 0;
 }
+
 
