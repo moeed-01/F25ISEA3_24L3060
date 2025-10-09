@@ -1,25 +1,28 @@
+
 #include<iostream>
 #include <fstream>
 #include <vector>
 #include <string>
 #include <cstdlib>
-#include <ctime> // for time based random seed
+#include <ctime>
 #include <algorithm>
 using namespace std;
 
 // Function to read words from a file
 vector<string> getWordsFromFile(const string& filename) {
-	vector<string> words;//store list of words from file(words.txt)
+    vector<string> words;
     ifstream file(filename);
-    string word;
+    string line;
 
     if (!file) {
         cout << "Error: Cannot open file '" << filename << "'" << endl;
         return words;
     }
 
-    while (file >> word) {
-        words.push_back(word);
+    // Use getline instead of >> to handle spaces in words (like "ice cream")
+    while (getline(file, line)) {
+        if (!line.empty())
+            words.push_back(line);
     }
     file.close();
     return words;
@@ -34,13 +37,14 @@ string selectRandomWord(const vector<string>& words) {
     return words[rand() % words.size()];
 }
 
-//  to display the current guessed state of the word
+// Display the current guessed state of the word
 void displayProgress(const string& guessed, int mistakesLeft, const string& usedLetters) {
     cout << endl << "Word: " << guessed << endl;
     cout << "Used letters: ";
     if (usedLetters.empty()) {
         cout << "None" << endl;
-    } else {
+    }
+    else {
         cout << usedLetters << endl;
     }
     cout << "Remaining mistakes: " << mistakesLeft << endl;
@@ -50,9 +54,16 @@ void displayProgress(const string& guessed, int mistakesLeft, const string& used
 // Core game logic
 void playHangman(const string& word) {
     string guessed(word.length(), '_');
-    string usedLetters = ""; // To track guessed letters
+    string usedLetters = "";
     int mistakes = 0;
     const int maxMistakes = 7;
+
+    // Reveal spaces right away
+    for (int i = 0; i < word.length(); i++) {
+        if (word[i] == ' ') {
+            guessed[i] = ' ';
+        }
+    }
 
     cout << endl << "Let's start the game!" << endl;
     cout << "You can make up to " << maxMistakes << " mistakes." << endl;
@@ -60,20 +71,23 @@ void playHangman(const string& word) {
     while (mistakes < maxMistakes && guessed != word) {
         displayProgress(guessed, maxMistakes - mistakes, usedLetters);
 
-        cout << "Enter a letter: ";
+        cout << "Enter a letter (you can also press space if you think there's one): ";
         char letter;
-        cin >> letter;
+        cin.get(letter);
+
+        // If user presses Enter immediately after space, it may cause newline issue — fix it
+        if (letter == '\n') continue;
         letter = tolower(letter);
 
         // Check if this letter was already guessed
         if (usedLetters.find(letter) != string::npos) {
             cout << "  You have used this letter once! Try a new one." << endl;
-            continue; // No decrement in mistake for reusing a letter
+            continue;
         }
 
         // Mark letter as used
-        usedLetters += letter;
-        usedLetters += ' '; // space for readability
+        usedLetters += (letter == ' ' ? '_' : letter); // display '_' for space in used letters
+        usedLetters += ' ';
 
         bool correct = false;
         for (int i = 0; i < word.length(); i++) {
@@ -83,19 +97,36 @@ void playHangman(const string& word) {
             }
         }
 
+        // Handle space guesses
+        if (letter == ' ') {
+            bool spaceExists = false;
+            for (int i = 0; i < word.length(); i++) {
+                if (word[i] == ' ' && guessed[i] == '_') {
+                    guessed[i] = ' ';
+                    spaceExists = true;
+                }
+            }
+            if (spaceExists)
+                correct = true;
+        }
+
         if (!correct) {
             mistakes++;
-            cout << " Wrong guess(X)! Mistakes left: "
+            cout << " Wrong guess (X)! Mistakes left: "
                 << (maxMistakes - mistakes) << endl;
-        } else {
+        }
+        else {
             cout << " Correct guess!" << endl;
         }
+
+        cin.ignore(numeric_limits<streamsize>::max(), '\n'); // clear input buffer
     }
 
     cout << endl << "=====================================" << endl;
     if (guessed == word) {
         cout << "Congratulations! You guessed the word: " << word << endl;
-    } else {
+    }
+    else {
         cout << " You lost! The correct word was: " << word << endl;
     }
     cout << "=====================================" << endl;
@@ -106,7 +137,6 @@ int main() {
     cout << "           HANGMAN GAME" << endl;
     cout << "=====================================" << endl;
 
-    // Change the file name here to match your new file
     vector<string> words = getWordsFromFile("words_question_2.txt");
     if (words.empty()) {
         cout << "No words available. Please add some to 'words_question_2.txt'." << endl;
